@@ -1,4 +1,5 @@
-import { Link, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Link, NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Logo } from "./components/Brand";
 import { useAuth } from "./lib/auth";
 import { useMeta } from "./lib/meta";
 import { initials } from "./lib/format";
@@ -15,16 +16,31 @@ function TopBar() {
   return (
     <header className="bar"><div className="bar-in">
       <Link to="/" className="brand">
-        <span className="mark"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M10 2 2 6l8 4 8-4-8-4Z" fill="var(--accent-ink)" /><path d="M5 8.5V13c0 1.4 2.2 3 5 3s5-1.6 5-3V8.5L10 11 5 8.5Z" fill="var(--sun)" /></svg></span>
-        <span><b>Білім порталы</b><small>Сайты школ и детсадов области</small></span>
+        <Logo />
+        <span><b>Білім порталы</b><small>Мектептер мен балабақшалар порталы</small></span>
       </Link>
-      <Link to="/feed" className="btn sm ghost">Новости</Link>
+      <nav className="topnav" aria-label="Основное меню">
+        <NavLink to="/" end>Школы и сады</NavLink>
+        <NavLink to="/feed">Новости</NavLink>
+        {me && <NavLink to="/cabinet">Кабинет</NavLink>}
+      </nav>
       {me ? (<>
-        <Link to="/cabinet" className="btn sm ghost">Кабинет</Link>
         <div className="who"><span className="avatar">{initials(me.full_name)}</span><span className="t"><b>{me.full_name}</b><span className="muted">{me.role_label}</span></span></div>
         <button className="btn sm" onClick={async () => { await logout(); nav("/"); }}>Выйти</button>
-      </>) : <Link to="/login" className="btn pri sm">Войти</Link>}
+      </>) : <Link to="/login" className="btn pri">Войти</Link>}
     </div></header>
+  );
+}
+
+function Footer() {
+  const { meta } = useMeta();
+  return (
+    <footer className="footer"><div className="footer-in">
+      <div className="col" style={{ maxWidth: 420 }}><b style={{ fontFamily: "var(--f-display)", fontSize: 17 }}>Білім порталы</b>
+        <span>Единая платформа сайтов школ и детских садов. {meta?.regionName ? `${meta.regionName[0].toUpperCase()}${meta.regionName.slice(1)}.` : ""} Сервер и поддержка — на стороне области.</span></div>
+      <div className="col"><b>Госуслуги</b><a href="https://egov.kz" target="_blank" rel="noopener noreferrer">Приём в 1 класс</a><a href="https://egov.kz" target="_blank" rel="noopener noreferrer">Очередь в детский сад</a></div>
+      <div className="col"><b>Полезное</b><Link to="/feed">Новости образования</Link><span>Сообщить о коррупции: 1424</span></div>
+    </div></footer>
   );
 }
 
@@ -49,6 +65,7 @@ export function App() {
           </Routes>
         )}
       </main>
+      <Footer />
       <Toast />
     </>
   );

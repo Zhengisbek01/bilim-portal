@@ -45,7 +45,9 @@ export function Area() {
     <PageHead title={isDist ? `Мониторинг района` : "Мониторинг сайтов области"} sub={me!.role_label}
       actions={<a className="btn" href="/api/monitoring/export.csv">Выгрузить CSV</a>} />
     <div className="kpis">
-      <Kpi label="Организаций" value={k.orgs} /><Kpi label="Среднее соответствие" value={`${k.avgScore}%`} />
+      <div className="kpi kpi-hero"><span className="lbl">Среднее соответствие</span>
+        <div className="row" style={{ gap: 14, flexWrap: "nowrap" }}><svg width="64" height="64" viewBox="0 0 36 36" role="img" aria-label={`${k.avgScore} процентов`}><circle cx="18" cy="18" r="15.9" fill="none" stroke="rgba(255,255,255,.2)" strokeWidth="3.4" /><circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--sun)" strokeWidth="3.4" strokeDasharray={`${k.avgScore} 100`} strokeLinecap="round" transform="rotate(-90 18 18)" /></svg><b>{k.avgScore}%</b></div></div>
+      <Kpi label="Организаций" value={k.orgs} />
       <Kpi label="Заполнены полностью" value={k.full} sub={`${Math.round((k.full / (k.orgs || 1)) * 100)}% от всех`} />
       <Kpi label="Открытых замечаний" value={k.openRemarks} sub={k.overdueRemarks ? `${k.overdueRemarks} просрочено` : undefined} />
       <Kpi label="Просроченных обращений" value={k.overdueAppeals} alert={k.overdueAppeals > 0} />

@@ -2,6 +2,7 @@ import { useEffect, type ComponentType } from "react";
 import { Link, Navigate, useLocation, useParams } from "react-router-dom";
 import { useAuth, type Role } from "../../lib/auth";
 import { useApi } from "../../lib/hooks";
+import { initials } from "../../lib/format";
 import * as C from "./control";
 import * as O from "./org";
 import * as K from "./class";
@@ -55,7 +56,8 @@ export function Cabinet() {
       <nav className="side" aria-label="Разделы кабинета">
         <span className="lbl">{scope}</span>
         {nav.map(([k, l]) => { const b = badgeFor(k); return (
-          <Link key={k} to={`/cabinet/${k}`} aria-current={page === k ? "page" : undefined}><span>{me.role === "teacher" && k === "class" && me.org_kind === "kg" ? "Моя группа" : l}</span>{b ? <span className="badge">{b}</span> : null}</Link>); })}
+          <Link key={k} to={`/cabinet/${k}`} aria-current={page === k ? "page" : undefined}><span style={{ marginRight: "auto" }}>{me.role === "teacher" && k === "class" && me.org_kind === "kg" ? "Моя группа" : l}</span>{b ? <span className="badge">{b}</span> : null}</Link>); })}
+        <div className="side-user"><span className="avatar">{initials(me.full_name)}</span><span><b>{me.full_name}</b>{me.role_label}</span></div>
       </nav>
       <div className="main"><Page key={page} /></div>
     </div>

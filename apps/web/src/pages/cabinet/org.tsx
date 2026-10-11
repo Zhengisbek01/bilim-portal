@@ -23,7 +23,7 @@ export function OrgHome() {
     <div className="kpis"><Kpi label="На проверке" value={d.counters.review} sub="материалы авторов" /><Kpi label="Замечания" value={d.counters.openRemarks} sub="от района и области" alert={d.counters.openRemarks > 0} />
       <Kpi label="Обращения" value={d.counters.appealsOpen} sub="без ответа" alert={d.counters.appealsOpen > 0} /><Kpi label="Опубликовано" value={d.counters.published} sub="новостей" /></div>
     <div className="g2">
-      <div className="panel"><span className="lbl">Соответствие требованиям</span><div className="score"><b>{s.score}%</b><span className={`pill ${level(s.score)}`}>{levelTxt(s.score)}</span></div>
+      <div className="panel" style={{ background: "var(--accent)", borderColor: "var(--accent)", color: "#fff" }}><span className="lbl" style={{ color: "var(--on-accent-muted)" }}>Соответствие требованиям</span><div className="score"><b>{s.score}%</b><span className={`pill ${level(s.score)}`}>{levelTxt(s.score)}</span></div>
         <div className="meter"><i style={{ width: `${s.score}%`, background: `var(--${level(s.score)})` }} /></div>
         {s.missing.length ? <div><p className="small" style={{ marginBottom: 6 }}>Не заполнены обязательные разделы:</p><div className="chips">{s.missing.map((k: string) => <Link key={k} className="chip" to={["docs", "food", "budget", "anticorr"].includes(k) ? "/cabinet/documents" : "/cabinet/site"}>{SEC[k].ru}</Link>)}</div></div> : <p className="small">Все обязательные разделы заполнены.</p>}
       </div>
