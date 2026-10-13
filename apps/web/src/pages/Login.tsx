@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
 import { useApi, useAction } from "../lib/hooks";
@@ -7,10 +7,9 @@ import { signWithNcaLayer } from "../lib/ncalayer";
 import { Banner, Tabs } from "../components/ui";
 
 export function Login() {
-  const [tab, setTab] = useState<"pwd" | "ecp" | "sms" | "dev">("ecp");
+  const [tab, setTab] = useState<"pwd" | "ecp" | "sms" | "dev">("pwd");
   const dev = useApi<any>("/auth/dev/users");
   const pw = useApi<any>("/auth/password/logins");
-  useEffect(() => { if (pw.data?.enabled) setTab((t) => (t === "ecp" ? "pwd" : t)); }, [pw.data?.enabled]);
   const [login, setLogin] = useState(""), [password, setPassword] = useState("");
   const { refresh } = useAuth();
   const nav = useNavigate();
@@ -33,23 +32,23 @@ export function Login() {
   return (
     <section style={{ display: "grid", gap: 18 }}>
       <div><span className="lbl">Вход</span><h1 style={{ marginTop: 6 }}>Вход на платформу</h1></div>
-      <Tabs value={tab} onChange={setTab} items={[...(pw.data?.enabled ? [["pwd", "Логин и пароль"] as ["pwd", string]] : []), ["ecp", "Сотрудникам: ЭЦП"], ["sms", "Родителям и ученикам: SMS"], ...(dev.data?.enabled && new URLSearchParams(location.search).has("dev") ? [["dev", "Демо-вход"] as ["dev", string]] : [])]} />
-      {tab === "pwd" && pw.data?.enabled && <>
+      <Tabs value={tab} onChange={setTab} items={[["pwd", "Логин и пароль"], ["ecp", "Сотрудникам: ЭЦП"], ["sms", "Родителям и ученикам: SMS"], ...(dev.data?.enabled && new URLSearchParams(location.search).has("dev") ? [["dev", "Демо-вход"] as ["dev", string]] : [])]} />
+      {tab === "pwd" && <>
         <form className="login-box panel" onSubmit={async (e) => { e.preventDefault(); setErr(null);
           const ok = await run(async () => { await api.post("/auth/password", { login, password }); await done(); });
-          if (!ok) setErr("Неверный логин или пароль"); }}>
+          if (!ok) setErr(pw.data?.enabled ? "Неверный логин или пароль" : "Сервер платформы не отвечает. Проверьте подключение базы данных и переменные окружения в Vercel."); }}>
           <p>Вход для сотрудников, родителей и учеников по логину и паролю, выданному администратором.</p>
           <label className="field"><span>Логин</span><input className="in" required value={login} placeholder="например, region" onChange={(e) => setLogin(e.target.value)} autoComplete="username" /></label>
           <label className="field"><span>Пароль</span><input className="in" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></label>
           <div><button className="btn pri" disabled={busy}>Войти</button></div>
           {err && <div className="err">{err}</div>}
         </form>
-        <details className="panel" style={{ padding: "14px 18px" }}>
+        {pw.data?.enabled && <details className="panel" style={{ padding: "14px 18px" }}>
           <summary className="muted" style={{ cursor: "pointer" }}>Тестовые учётные записи</summary>
-          <div className="accs" style={{ marginTop: 14 }}>{pw.data.logins.map((u: any) => (
+          <div className="accs" style={{ marginTop: 14 }}>{(pw.data?.logins ?? []).map((u: any) => (
             <button key={u.login} type="button" className="acc" onClick={() => setLogin(u.login)}>
               <span className="rl">{u.role_label}</span><b>{u.login}</b><span className="muted small">{[u.full_name, u.note].filter(Boolean).join(" · ")}</span></button>))}</div>
-        </details>
+        </details>}
       </>}
       {tab === "ecp" && <div className="login-box panel">
         <p>Вход для сотрудников управления, отделов образования, школ и детских садов. Подпишите запрос ключом <b>AUTH</b> в NCALayer — роль определится по ИИН.</p>
