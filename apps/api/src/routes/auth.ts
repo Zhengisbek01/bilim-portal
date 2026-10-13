@@ -66,4 +66,34 @@ auth.post("/dev", async (req, res) => {
   res.json({ ok: true });
 });
 
+/* --- Демо: логин и пароль (только при AUTH_DEV_LOGIN=true) --- */
+export const DEMO_LOGINS: Record<string, { iin?: string; phone?: string }> = {
+  operator: { iin: "000000000001" }, region: { iin: "000000000002" }, akimat: { iin: "000000000003" },
+  district: { iin: "000000000004" }, director: { iin: "000000000005" }, editor: { iin: "000000000006" },
+  teacher: { iin: "000000000007" }, staff: { iin: "000000000008" }, kg_teacher: { iin: "000000000009" },
+  author: { iin: "000000000010" }, parent: { phone: "+77010000001" }, parent_kg: { phone: "+77010000002" },
+  student: { phone: "+77010000003" },
+};
+auth.get("/password/logins", async (_req, res) => {
+  if (!env.AUTH_DEV_LOGIN) return res.json({ enabled: false, logins: [] });
+  const out = [];
+  for (const [login, k] of Object.entries(DEMO_LOGINS)) {
+    const u = await one(`SELECT full_name, role, note FROM users WHERE active AND ${k.iin ? "iin" : "phone"} = $1 LIMIT 1`, [k.iin ?? k.phone]);
+    if (u) out.push({ login, full_name: u.full_name, role_label: ROLES[u.role as keyof typeof ROLES], note: u.note });
+  }
+  res.json({ enabled: true, logins: out });
+});
+auth.post("/password", limiter, async (req, res) => {
+  if (!env.AUTH_DEV_LOGIN) fail(404, "Не найдено");
+  const { login, password } = parse(z.object({ login: z.string().trim().toLowerCase(), password: z.string() }), req.body);
+  const k = DEMO_LOGINS[login];
+  if (!k || password !== env.DEMO_PASSWORD) fail(401, "Неверный логин или пароль");
+  const u = await one(`SELECT id FROM users WHERE active AND ${k!.iin ? "iin" : "phone"} = $1 LIMIT 1`, [k!.iin ?? k!.phone]);
+  if (!u) fail(404, "Демо-пользователь не найден. Включите SEED_DEMO=true и перезапустите.");
+  issueSession(res, u!.id);
+  const full = await loadUserById(u!.id);
+  await audit(full, "Вход по демо-паролю", full?.org_id);
+  res.json({ ok: true });
+});
+
 auth.get("/check", async (req, res) => { requireUser(req); res.json({ ok: true }); });
