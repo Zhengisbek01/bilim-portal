@@ -138,7 +138,7 @@ site.post("/documents", upload.single("file"), async (req, res) => {
   let key: string | null = null;
   if (req.file) {
     if (!ALLOWED_MIME.has(req.file.mimetype)) fail(415, "Допустимы PDF, Word, Excel, JPG и PNG");
-    key = await saveFile(req.file.buffer, req.file.originalname);
+    key = await saveFile(req.file.buffer, req.file.originalname, req.file.mimetype);
   }
   const section = DOC_TYPES[b.type];
   const r = await one(`INSERT INTO documents(org_id, type, section, title, valid_until, file_key, file_name, mime, size, uploaded_by, uploader)

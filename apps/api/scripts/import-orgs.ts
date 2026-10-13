@@ -6,15 +6,12 @@
  * Запуск: npm run import:orgs -w apps/api -- ./orgs.csv
  */
 import fs from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { initDb, migrate, closeDb, q } from "../src/db.js";
 
 const file = process.argv[2];
 if (!file) { console.error("Укажите путь к CSV"); process.exit(1); }
-const here = path.dirname(fileURLToPath(import.meta.url));
 await initDb();
-await migrate(path.join(here, "..", "migrations"));
+await migrate();
 const lines = (await fs.readFile(file, "utf8")).replace(/^﻿/, "").split(/\r?\n/).filter(Boolean);
 const head = lines.shift()!.split(";").map((s) => s.trim());
 let ok = 0;

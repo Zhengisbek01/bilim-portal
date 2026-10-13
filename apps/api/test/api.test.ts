@@ -22,7 +22,7 @@ const ids: Record<string, string> = {};
 
 before(async () => {
   await initDb();
-  await migrate(path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "migrations"));
+  await migrate();
   await seed();
   for (const r of await q(`SELECT id, role, full_name FROM users`)) ids[r.role + ":" + r.full_name] = r.id;
   server = createApp().listen(0);
@@ -203,4 +203,18 @@ test("требования и статистика по ролям", async () =>
   const s = await as("student");
   assert.equal((await s.get("/stats/student")).status, 200);
   assert.equal((await s.get("/monitoring/area")).status, 403);
+});
+
+test("демо-вход по логину и паролю: все 13 логинов, неверный пароль отклоняется", async () => {
+  const list = await (await fetch(`${base}/auth/password/logins`)).json();
+  assert.equal(list.logins.length, 13);
+  for (const { login } of list.logins) {
+    const r = await fetch(`${base}/auth/password`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ login, password: "Bilim2026" }) });
+    assert.equal(r.status, 200, login + " " + (await r.text()));
+    const cookie = r.headers.get("set-cookie")!.split(";")[0];
+    const me = await (await fetch(`${base}/auth/me`, { headers: { cookie } })).json();
+    assert.ok(me.user, login);
+  }
+  const bad = await fetch(`${base}/auth/password`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ login: "region", password: "x" }) });
+  assert.equal(bad.status, 401);
 });

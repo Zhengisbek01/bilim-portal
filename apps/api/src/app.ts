@@ -20,11 +20,17 @@ export function createApp() {
   app.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: "same-site" } }));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
-  // Защита от CSRF: изменяющие запросы принимаем только со своего origin
+  // Защита от CSRF: изменяющие запросы принимаем только с того же сайта (или с WEB_ORIGIN / домена области)
   app.use((req, _res, next) => {
     if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
       const origin = req.headers.origin;
-      if (origin && origin !== env.WEB_ORIGIN && !origin.endsWith(`.${env.PUBLIC_DOMAIN}`) && origin !== `https://${env.PUBLIC_DOMAIN}`) fail(403, "Запрос с чужого сайта отклонён");
+      if (origin) {
+        let host = "";
+        try { host = new URL(origin).host; } catch { /* битый заголовок */ }
+        const self = String(req.headers["x-forwarded-host"] ?? req.headers.host ?? "");
+        const ok = host === self || origin === env.WEB_ORIGIN || host === env.PUBLIC_DOMAIN || host.endsWith(`.${env.PUBLIC_DOMAIN}`);
+        if (!ok) fail(403, "Запрос с чужого сайта отклонён");
+      }
     }
     next();
   });

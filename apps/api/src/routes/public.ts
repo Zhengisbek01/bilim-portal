@@ -7,7 +7,7 @@ import { q, one } from "../db.js";
 import { parse, notFound, text, today } from "../lib/http.js";
 import { compliance, getRequirements, getMaintenance } from "../lib/config.js";
 import { SECTION_TITLES } from "../lib/domain.js";
-import { openFile } from "../lib/storage.js";
+import { openFile, isRemoteKey } from "../lib/storage.js";
 import { audit } from "../lib/audit.js";
 
 export const pub = Router();
@@ -65,6 +65,7 @@ pub.get("/orgs/:slug", async (req, res) => {
 pub.get("/files/:id", async (req, res) => {
   const d = await one(`SELECT file_key, file_name, mime FROM documents WHERE id = $1`, [req.params.id]);
   if (!d?.file_key) return notFound("Файл не найден");
+  if (isRemoteKey(d.file_key)) return res.redirect(302, d.file_key);
   res.setHeader("content-type", d.mime || "application/octet-stream");
   res.setHeader("content-disposition", `inline; filename*=UTF-8''${encodeURIComponent(d.file_name || "document")}`);
   openFile(d.file_key).on("error", () => res.status(404).end()).pipe(res);

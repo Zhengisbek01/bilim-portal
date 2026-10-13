@@ -28,7 +28,7 @@ export async function initDb(url = env.DATABASE_URL) {
     execRaw = async (sql) => { await db.exec(sql); };
     closeFn = async () => { await db.close(); };
   } else {
-    const pool = new pg.Pool({ connectionString: url, max: 20 });
+    const pool = new pg.Pool({ connectionString: url, max: process.env.VERCEL ? 3 : 20 });
     pg.types.setTypeParser(1082, (v) => v); // date как 'YYYY-MM-DD'
     exec = async (sql, params = []) => {
       const r = await pool.query(sql, params as any[]);
@@ -49,18 +49,29 @@ export async function one<T extends Row = Row>(sql: string, params: unknown[] = 
 export async function raw(sql: string) { await execRaw(sql); }
 export async function closeDb() { await closeFn(); }
 
-/** Применяет SQL-миграции из каталога migrations по порядку имён. */
-export async function migrate(dir: string) {
-  const fs = await import("node:fs/promises");
-  const path = await import("node:path");
-  await raw(`CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`);
-  const done = new Set((await q(`SELECT name FROM schema_migrations`)).map((r) => r.name));
-  const files = (await fs.readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
-  for (const f of files) {
-    if (done.has(f)) continue;
-    const sql = await fs.readFile(path.join(dir, f), "utf8");
-    await raw(`BEGIN;\n${sql}\nCOMMIT;`);
-    await q(`INSERT INTO schema_migrations(name) VALUES ($1)`, [f]);
-    console.log(`[migrate] ${f}`);
+/**
+ * Применяет миграции по порядку. Каждая выполняется одной транзакцией под advisory-блокировкой,
+ * поэтому одновременный холодный старт нескольких экземпляров (serverless) не применит её дважды.
+ */
+export async function migrate() {
+  const { MIGRATIONS } = await import("./migrations/index.js");
+  try { await raw(`CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`); }
+  catch { /* таблицу параллельно создал другой экземпляр */ }
+  for (const m of MIGRATIONS) {
+    const done = await one(`SELECT 1 FROM schema_migrations WHERE name = $1`, [m.name]);
+    if (done) continue;
+    const name = m.name.replace(/'/g, "''");
+    try {
+      await raw(`BEGIN;
+SELECT pg_advisory_xact_lock(727262);
+DO $mig$ BEGIN IF EXISTS (SELECT 1 FROM schema_migrations WHERE name = '${name}') THEN RAISE EXCEPTION 'migration-already-applied'; END IF; END $mig$;
+${m.sql}
+INSERT INTO schema_migrations(name) VALUES ('${name}');
+COMMIT;`);
+      console.log(`[migrate] ${m.name}`);
+    } catch (e: any) {
+      try { await raw("ROLLBACK"); } catch { /* соединение уже чистое */ }
+      if (!String(e?.message).includes("migration-already-applied")) throw e;
+    }
   }
 }
