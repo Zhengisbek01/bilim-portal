@@ -66,7 +66,7 @@ auth.post("/dev", async (req, res) => {
   res.json({ ok: true });
 });
 
-/* --- Демо: логин и пароль (только при AUTH_DEV_LOGIN=true) --- */
+/* --- Вход по логину и паролю (тестовые учётные записи, пароль DEMO_PASSWORD) --- */
 export const DEMO_LOGINS: Record<string, { iin?: string; phone?: string }> = {
   operator: { iin: "000000000001" }, region: { iin: "000000000002" }, akimat: { iin: "000000000003" },
   district: { iin: "000000000004" }, director: { iin: "000000000005" }, editor: { iin: "000000000006" },
@@ -84,7 +84,6 @@ auth.get("/password/logins", async (_req, res) => {
   res.json({ enabled: true, logins: out });
 });
 auth.post("/password", limiter, async (req, res) => {
-  if (!env.AUTH_DEV_LOGIN) fail(404, "Не найдено");
   const { login, password } = parse(z.object({ login: z.string().trim().toLowerCase(), password: z.string() }), req.body);
   const k = DEMO_LOGINS[login];
   if (!k || password !== env.DEMO_PASSWORD) fail(401, "Неверный логин или пароль");

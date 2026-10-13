@@ -52,8 +52,9 @@ export async function seed() {
 
   // Демо-ИИН начинаются с 000000 — таких не бывает у реальных людей
   const U = async (full_name: string, role: string, extra: Record<string, unknown> = {}) =>
-    (await one(`INSERT INTO users(full_name, role, iin, phone, org_id, district_id, pupil_id, note) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-      [full_name, role, extra.iin ?? null, extra.phone ?? null, extra.org ?? null, extra.district ?? null, extra.pupil ?? null, extra.note ?? ""]))!.id as string;
+    // id детерминирован (по ИИН/телефону): сессия остаётся рабочей, даже если демо-база пересоздана на другом экземпляре
+    (await one(`INSERT INTO users(id, full_name, role, iin, phone, org_id, district_id, pupil_id, note) VALUES (md5('bilim-demo:' || $9)::uuid, $1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+      [full_name, role, extra.iin ?? null, extra.phone ?? null, extra.org ?? null, extra.district ?? null, extra.pupil ?? null, extra.note ?? "", String(extra.iin ?? extra.phone ?? full_name)]))!.id as string;
   const op = await U("Сервисная служба платформы", "operator", { iin: "000000000001" });
   const reg = await U("Жумабекова Асель", "region", { iin: "000000000002", note: "Управление образования области" });
   await U("Аппарат акима области", "observer", { iin: "000000000003", note: "Только просмотр отчётов" });

@@ -4,8 +4,9 @@ const schema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   PORT: z.coerce.number().default(4000),
   // postgres://user:pass@host:5432/db  или  pglite:./data/pglite  или  pglite:memory
-  DATABASE_URL: z.string().default(process.env.POSTGRES_URL || "pglite:./data/pglite"),
-  JWT_SECRET: z.string().min(16).default("dev-secret-change-me-please"),
+  // На Vercel без подключённой базы — встроенный PostgreSQL в памяти с демо-данными (только для показа)
+  DATABASE_URL: z.string().default(process.env.POSTGRES_URL || (process.env.VERCEL ? "pglite:memory" : "pglite:./data/pglite")),
+  JWT_SECRET: z.string().min(16).default(process.env.VERCEL ? `bilim-demo-${process.env.VERCEL_PROJECT_ID ?? "portal"}-fallback-secret` : "dev-secret-change-me-please"),
   COOKIE_SECURE: z.string().default(process.env.VERCEL ? "true" : "false").transform((v) => v === "true" || v === "1"),
   WEB_ORIGIN: z.string().default("http://localhost:5173"),
   PUBLIC_DOMAIN: z.string().default("bilim-zhetisu.kz"),
@@ -29,10 +30,13 @@ const schema = z.object({
 
 export const env = schema.parse(process.env);
 
-if (process.env.VERCEL && env.DATABASE_URL.startsWith("pglite:")) {
-  console.warn("[!] На Vercel нужен внешний PostgreSQL: подключите Neon (Storage → Neon) и задайте DATABASE_URL");
+export const DEMO_MEMORY_DB = env.DATABASE_URL === "pglite:memory" && !!process.env.VERCEL;
+if (DEMO_MEMORY_DB) {
+  env.SEED_DEMO = true;
+  console.warn("[!] База не подключена: работает демо-режим в памяти, данные сбрасываются при перезапуске. Для пилота подключите Neon (Storage → Neon)");
 }
 if (env.NODE_ENV === "production") {
   if (env.JWT_SECRET.startsWith("dev-secret")) throw new Error("Задайте JWT_SECRET для production");
+  if (!process.env.JWT_SECRET) console.warn("[!] JWT_SECRET не задан — используется демо-ключ, задайте свой");
   if (env.AUTH_DEV_LOGIN) console.warn("[!] AUTH_DEV_LOGIN включён в production — отключите его");
 }
