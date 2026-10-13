@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { DemoAccess } from "../../components/DemoAccess";
 import { Link } from "react-router-dom";
 import { useApi } from "../../lib/hooks";
 import { useMeta } from "../../lib/meta";
@@ -44,6 +45,7 @@ export function Catalog() {
         </div>
       </div>
     </section>
+    <div style={{ marginTop: 28 }}><DemoAccess /></div>
 
     <section className="statband bleed">
       <div className="inner">
